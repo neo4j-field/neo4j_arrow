@@ -4,6 +4,15 @@ from .model import Graph, Node, Edge
 import pyarrow as pa
 
 
+def test_nop_mapper():
+    mapper = Neo4jArrowClient._nop
+    t = pa.table({"labels": ["Junk"], "nodeId": ["junk_id"]})
+    result = mapper(t)
+    assert result is not None
+    assert "nodeId" in result.schema.names
+    assert "labels" in result.schema.names
+
+
 def test_node_mapper():
     SRC_KEY = "gcs_source"
     g = Graph(name="junk", nodes=[Node(source="gs://.*/junk.*parquet",

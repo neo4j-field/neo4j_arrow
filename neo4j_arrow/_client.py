@@ -100,9 +100,9 @@ class Neo4jArrowClient:
             raise e
 
     @classmethod
-    def _nop(*args, **kwargs):
+    def _nop(cls, data: Arrow) -> Arrow:
         """Used as a no-op mapping function."""
-        pass
+        return data
 
     @classmethod
     def _node_mapper(cls, model: Graph, source_field: Optional[str] = None):
