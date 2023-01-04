@@ -1,5 +1,5 @@
 ARG NA_PYVERSION="${NA_PYVERSION:-3.9}"
-FROM python:${NA_PYVERSION}-slim
+FROM python:${NA_PYVERSION}-slim AS base
 
 ARG NA_USER="${NA_USER:-guido}"
 ARG TOX_DIR="${TOX_DIR:-/tox}"
@@ -12,9 +12,12 @@ USER "${NA_USER}"
 ENV PATH="${PATH}:/pip/.local/bin"
 
 RUN pip install -qq --upgrade pip
-COPY . /src
+COPY requirements.txt /src
+COPY requirements-dev.txt /src
 
 RUN pip install --user -r /src/requirements.txt \
     && pip install --user -r /src/requirements-dev.txt
 
+FROM base AS actual
+COPY . /src
 ENTRYPOINT ["tox", "-c", "/src/tox.ini", "--root", "${TOX_DIR}", "--workdir", "${TOX_DIR}"]
