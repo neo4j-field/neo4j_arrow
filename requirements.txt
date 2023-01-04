@@ -1,1 +1,1 @@
-pyarrow >=9, <10
+pyarrow >=4, <10

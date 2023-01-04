@@ -10,7 +10,7 @@ setup(
     license="Apache License 2.0",
 
     install_requires=[
-        "pyarrow>=9,<10",
+        "pyarrow>=4,<10",
     ],
     packages=find_packages(),
 )
