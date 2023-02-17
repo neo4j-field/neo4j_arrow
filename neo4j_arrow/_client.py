@@ -247,10 +247,22 @@ class Neo4jArrowClient:
             mapper = self._node_mapper(model, source_field)
         else:
             mapper = self._nop
-        if isinstance(nodes, pa.Table):
-            # TODO: max_chunksize on to_batches()
-            return self._write_batches(desc, nodes.to_batches(), mapper)
-        return self._write_batches(desc, nodes, mapper)
+        try:
+            if isinstance(nodes, pa.Table):
+                # TODO: max_chunksize on to_batches()
+                return self._write_batches(desc, nodes.to_batches(), mapper)
+            return self._write_batches(desc, nodes, mapper)
+        except error.NotFound as e:
+            log.error(f"no existing import job found for graph f{self.graph}")
+            # TODO: should we raise this? return something like (-1, -1)? both?
+            return (0, 0)
+        except error.UnknownError as e:
+            # this can happen if we're missing a field...so it's not really
+            # unknown, but that's what the server currently says :(
+            log.error(e.message)
+            return (0, 0)
+        except Exception as e:
+            raise e
 
     def nodes_done(self) -> Dict[str, Any]:
         assert not self.debug or self.state == ClientState.FEEDING_NODES
