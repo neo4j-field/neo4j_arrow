@@ -187,11 +187,10 @@ class Neo4jArrowClient:
             json.dumps(desc).encode("utf-8")
         )
         rows, nbytes = 0, 0
-        # todo: how can do_put fail?
-        writer, _ = client.do_put(upload_descriptor, first.schema,
-                                  options=self.call_opts)
-        with writer:
-            try:
+        try:
+            writer, _ = client.do_put(upload_descriptor, first.schema,
+                                      options=self.call_opts)
+            with writer:
                 writer.write_batch(first)
                 rows += first.num_rows
                 nbytes += first.get_total_buffer_size()
@@ -199,8 +198,8 @@ class Neo4jArrowClient:
                     writer.write_batch(fn(remaining))
                     rows += remaining.num_rows
                     nbytes += remaining.get_total_buffer_size()
-            except Exception as e:
-                raise error.interpret(e)
+        except Exception as e:
+            raise error.interpret(e)
         return rows, nbytes
 
     def start(self, action: str = "CREATE_GRAPH", *,
