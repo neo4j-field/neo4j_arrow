@@ -321,12 +321,15 @@ class Neo4jArrowClient:
         }
 
         client = self._client()
-        result = client.do_get(
-            pa.flight.Ticket(json.dumps(ticket).encode("utf8")),
-            options=self.call_opts
-        )
-        for chunk, _ in result:
-            yield chunk
+        try:
+            result = client.do_get(
+                pa.flight.Ticket(json.dumps(ticket).encode("utf8")),
+                options=self.call_opts
+            )
+            for chunk, _ in result:
+                yield chunk
+        except Exception as e:
+            raise error.interpret(e)
 
     def read_nodes(self, prop: str, *, concurrency: int = 4):
         ticket = {
@@ -340,12 +343,15 @@ class Neo4jArrowClient:
         }
 
         client = self._client()
-        result = client.do_get(
-            pa.flight.Ticket(json.dumps(ticket).encode("utf8")),
-            options=self.call_opts
-        )
-        for chunk, _ in result:
-            yield chunk
+        try:
+            result = client.do_get(
+                pa.flight.Ticket(json.dumps(ticket).encode("utf8")),
+                options=self.call_opts
+            )
+            for chunk, _ in result:
+                yield chunk
+        except Exception as e:
+            raise error.interpret(e)
 
     def abort(self, name: Optional[str] = None) -> bool:
         """Try aborting an existing import process."""
