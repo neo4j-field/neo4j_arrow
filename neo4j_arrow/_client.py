@@ -220,7 +220,8 @@ class Neo4jArrowClient:
             result = self._send_action(action, config)
             if result and result.get("name", None) == config["name"]:
                 self.state = ClientState.FEEDING_NODES
-            return result
+            log.error(f"failed to start {action} for {config['name']},"
+                      f" got {result}")
         except error.AlreadyExists as e:
             if force:
                 log.warn(f"forcing cancellation of existing {action} import"
@@ -228,10 +229,10 @@ class Neo4jArrowClient:
             if self.abort():
                 return self.start(action, config=config)
             log.warn(f"{action} import job already exists for {config['name']}")
-            return {}
         except Exception as e:
             log.error(f"fatal error performing action {action}: {e}")
             raise e
+        return {}
 
     def write_nodes(self, nodes: Nodes,
                     model: Optional[Graph] = None,
