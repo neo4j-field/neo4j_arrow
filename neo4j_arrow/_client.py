@@ -318,7 +318,7 @@ class Neo4jArrowClient:
     def abort(self, name: Optional[str] = None) -> bool:
         """Try aborting an existing import process."""
         config = {
-            "graph_name": name or self.graph,
+            "name": name or self.graph,
         }
         try:
             result = self._send_action("ABORT", config)
