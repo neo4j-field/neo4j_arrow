@@ -1,5 +1,5 @@
-__all__ = [ "Neo4jArrowClient", "model" ]
+__all__ = [ "Neo4jArrowClient", "model", "error" ]
 
 from ._client import Neo4jArrowClient
 
-from . import model
+from . import model, error

@@ -4,8 +4,10 @@ import logging as log
 import json
 
 import pyarrow as pa
+import pyarrow.lib as lib
 import pyarrow.flight as flight
 
+from . import error
 from .model import Graph, Node, Edge
 
 from typing import cast, Any, Dict, Iterable, Optional, Union, Tuple
@@ -95,6 +97,8 @@ class Neo4jArrowClient:
             )
             obj = json.loads(next(result).body.to_pybytes().decode())
             return dict(obj)
+        except lib.ArrowException as e:
+            raise error.interpret(e)
         except Exception as e:
             log.error(f"send_action error: {e}")
             raise e
@@ -202,7 +206,8 @@ class Neo4jArrowClient:
         return rows, nbytes
 
     def start(self, action: str = "CREATE_GRAPH", *,
-              config: Dict[str, Any] = {}) -> Dict[str, Any]:
+              config: Dict[str, Any] = {},
+              force: bool = False) -> Dict[str, Any]:
         assert not self.debug or self.state == ClientState.READY
         if not config:
             config = {
@@ -210,10 +215,24 @@ class Neo4jArrowClient:
                 "database_name": self.database,
                 "concurrency": self.concurrency,
             }
-        result = self._send_action(action, config)
-        if result:
-            self.state = ClientState.FEEDING_NODES
-        return result
+        try:
+            result = self._send_action(action, config)
+            if result:
+                # TODO: anything to inspect in result?
+                self.state = ClientState.FEEDING_NODES
+            return result
+        except error.AlreadyExists as e:
+            if force:
+                log.warn(f"forcing cancellation of existing {action} for"
+                         f"{self.graph}")
+            log.warn(f"failed to start {action} import for {self.graph}")
+            if self.abort():
+                return self.start(action, config=config)
+            # Give up and raise, caller must decide to wait or abort
+            raise e
+        except Exception as e:
+            log.error(f"fatal error performing action {action}: {e}")
+            raise e
 
     def write_nodes(self, nodes: Nodes,
                     model: Optional[Graph] = None,
@@ -295,6 +314,20 @@ class Neo4jArrowClient:
         )
         for chunk, _ in result:
             yield chunk
+
+    def abort(self, name: Optional[str] = None) -> bool:
+        """Try aborting an existing import process."""
+        config = {
+            "graph_name": name or self.graph,
+        }
+        try:
+            result = self._send_action("ABORT", config)
+            if result: # TODO: how do we check abort result?
+                return True
+            log.warn(f"failed to abort {name}")
+        except Exception as e:
+            log.error(f"error aborting {name}: {e}")
+        return False
 
     def wait(self, timeout: int = 0):
         """wait for completion"""
