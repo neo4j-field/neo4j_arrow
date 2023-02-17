@@ -46,7 +46,12 @@ class UnknownError(Neo4jArrowException):
     def __init__(self, message: str):
         # These errors have ugly stack traces often repeated. Try to beautify.
         try:
-            self.message = message.splitlines()[-1]
+            self.message = (
+                message
+                .replace("\\n", "\n")
+                .replace("\'", "'")
+                .splitlines()[-1]
+            )
         except Exception:
             self.message = message
 
