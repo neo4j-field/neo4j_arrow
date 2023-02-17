@@ -215,21 +215,20 @@ class Neo4jArrowClient:
                 "database_name": self.database,
                 "concurrency": self.concurrency,
             }
+        # TODO: assert config has mandatory fields
         try:
             result = self._send_action(action, config)
-            if result:
-                # TODO: anything to inspect in result?
+            if result and result.get("name", None) == config["name"]:
                 self.state = ClientState.FEEDING_NODES
             return result
         except error.AlreadyExists as e:
             if force:
-                log.warn(f"forcing cancellation of existing {action} for"
-                         f"{self.graph}")
-            log.warn(f"failed to start {action} import for {self.graph}")
+                log.warn(f"forcing cancellation of existing {action} import"
+                         f" for {config['name']}")
             if self.abort():
                 return self.start(action, config=config)
-            # Give up and raise, caller must decide to wait or abort
-            raise e
+            log.warn(f"{action} import job already exists for {config['name']}")
+            return {}
         except Exception as e:
             log.error(f"fatal error performing action {action}: {e}")
             raise e
