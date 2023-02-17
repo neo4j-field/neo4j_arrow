@@ -2,10 +2,13 @@
 Neo4j Flight Service Errors
 """
 from pyarrow.lib import ArrowException
+from pyarrow.flight import FlightServerError
 
 from typing import Union
 
-def interpret(e: ArrowException) -> Union[ArrowException, Exception]:
+KnownExceptions = Union[ArrowException, FlightServerError, Exception]
+
+def interpret(e: KnownExceptions) -> KnownExceptions:
     """
     Try to figure out which exception occcurred based on the server response.
     """
@@ -20,6 +23,7 @@ def interpret(e: ArrowException) -> Union[ArrowException, Exception]:
         elif "INTERNAL" in message:
             return InternalError(message)
         elif "UNKNOWN" in message:
+            # nb. this one is usually a FlightServerError
             return UnknownError(message)
     except:
         pass
