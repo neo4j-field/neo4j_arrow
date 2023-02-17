@@ -45,6 +45,8 @@ class UnknownError(Neo4jArrowException):
     """
     def __init__(self, message: str):
         # These errors have ugly stack traces often repeated. Try to beautify.
+        # nb. In reality there's an embedded gRPC dict-like message, but let's
+        # not introduce dict parsing here because that's a security issue.
         try:
             self.message = (
                 message
