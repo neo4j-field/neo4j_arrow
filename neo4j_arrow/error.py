@@ -48,8 +48,8 @@ class UnknownError(Neo4jArrowException):
         try:
             self.message = (
                 message
-                .replace("\\n", "\n")
-                .replace("\'", "'")
+                .replace(r"\n", "\n")
+                .replace(r"\'", "'")
                 .splitlines()[-1]
             )
         except Exception:
