@@ -43,7 +43,12 @@ class UnknownError(Neo4jArrowException):
     """
     We have no idea what is wrong :(
     """
-    pass
+    def __init__(self, message: str):
+        # These errors have ugly stack traces often repeated. Try to beautify.
+        try:
+            self.message = message.splitlines()[-1]
+        except Exception:
+            self.message = message
 
 
 class AlreadyExists(Neo4jArrowException):
