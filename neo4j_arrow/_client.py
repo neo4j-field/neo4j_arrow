@@ -322,13 +322,13 @@ class Neo4jArrowClient:
         }
         try:
             result = self._send_action("ABORT", config)
-            if result and result["name"] == name:
+            if result and result.get("name", None) == config["name"]:
                 return True
-            log.error(f"failed to abort {name}, got {result}")
+            log.error(f"failed to abort {config['name']}, got {result}")
         except error.NotFound as e:
-            log.warn(f"no existing import for {name}")
+            log.warn(f"no existing import for {config['name']}")
         except Exception as e:
-            log.error(f"error aborting {name}: {e}")
+            log.error(f"error aborting {config['name']}: {e}")
         return False
 
     def wait(self, timeout: int = 0):
