@@ -4,7 +4,6 @@ import logging as log
 import json
 
 import pyarrow as pa
-import pyarrow.lib as lib
 import pyarrow.flight as flight
 
 from . import error
@@ -97,11 +96,9 @@ class Neo4jArrowClient:
             )
             obj = json.loads(next(result).body.to_pybytes().decode())
             return dict(obj)
-        except lib.ArrowException as e:
-            raise error.interpret(e)
         except Exception as e:
-            log.error(f"send_action error: {e}")
-            raise e
+            # try to decode to make life easier for the user
+            raise error.interpret(e)
 
     @classmethod
     def _nop(cls, data: Arrow) -> Arrow:
@@ -288,17 +285,21 @@ class Neo4jArrowClient:
                 # TODO: max_chunksize on to_batches()
                 return self._write_batches(desc, edges.to_batches(), mapper)
             return self._write_batches(desc, edges, mapper)
+
         except error.NotFound as e:
             log.error(f"no existing import job found for graph f{self.graph}")
             # TODO: should we raise this? return something like (-1, -1)? both?
             return (0, 0)
+
         except error.UnknownError as e:
             # this can happen if we're missing a field...so it's not really
             # unknown, but that's what the server currently says :(
             log.error(e.message)
             return (0, 0)
+
         except Exception as e:
             raise e
+
 
     def edges_done(self) -> Dict[str, Any]:
         assert not self.debug or self.state == ClientState.FEEDING_EDGES
