@@ -3,8 +3,9 @@ Neo4j Flight Service Errors
 """
 from pyarrow.lib import ArrowException
 
+from typing import Union
 
-def interpret(e: ArrowException) -> Exception:
+def interpret(e: ArrowException) -> Union[ArrowException, Exception]:
     """
     Try to figure out which exception occcurred based on the server response.
     """
