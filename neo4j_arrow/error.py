@@ -18,9 +18,12 @@ def interpret(e: ArrowException) -> Exception:
             return NotFound(message)
         elif "INTERNAL" in message:
             return InternalError(message)
+        elif "UNKNOWN" in message:
+            return UnknownError(message)
     except:
         pass
-    return UnknownError(str(e))
+    # give up
+    return e
 
 
 class Neo4jArrowException(Exception):
