@@ -9,7 +9,9 @@ import pyarrow.flight as flight
 from . import error
 from .model import Graph, Node, Edge
 
-from typing import cast, Any, Dict, Iterable, Optional, Union, Tuple
+from typing import (
+    cast, Any, Dict, Generator, Iterable, List, Optional, Union, Tuple
+)
 
 
 Result = Tuple[int, int]
@@ -309,14 +311,33 @@ class Neo4jArrowClient:
             self.state = ClientState.AWAITING_GRAPH
         return result
 
-    def read_edges(self, prop: str, *, concurrency: int = 4):
+    def read_edges(self, *, properties: Optional[List[str]] = None,
+                   relationship_types: List[str] = ["*"],
+                   concurrency: int = 4) -> Generator[Arrow, None, None]:
+        """
+        Stream edges (relationships) from a Neo4j graph projection. When
+        requesting properties, they must be requested explicitly. However,
+        all relationship types may be selected using the special ['*'] value.
+
+        N.b. relationship types are dictionary-encoded.
+        """
+        if properties:
+            procedure_name = "gds.graph.relationshipProperties.stream"
+            configuration = {
+                "relationship_properties": properties,
+                "relationship_types": relationship_types or ["*"],
+            }
+        else:
+            procedure_name = "gds.beta.graph.relationships.stream"
+            configuration = {
+                "relationship_types": relationship_types or ["*"],
+            }
+
         ticket = {
-            "graph_name": self.graph, "database_name": self.database,
-            "procedure_name": "gds.graph.streamRelationshipProperty",
-            "configuration": {
-                "relationship_types": "*",
-                "relationship_property": prop,
-            },
+            "graph_name": self.graph,
+            "database_name": self.database,
+            "procedure_name": procedure_name,
+            "configuration": configuration,
             "concurrency": concurrency,
         }
 
@@ -334,10 +355,10 @@ class Neo4jArrowClient:
     def read_nodes(self, prop: str, *, concurrency: int = 4):
         ticket = {
             "graph_name": self.graph, "database_name": self.database,
-            "procedure_name": "gds.graph.streamNodeProperty",
+            "procedure_name": "gds.graph.nodeProperties.stream",
             "configuration": {
                 "node_labels": "*",
-                "node_property": prop,
+                "node_properties": prop,
             },
             "concurrency": concurrency,
         }
