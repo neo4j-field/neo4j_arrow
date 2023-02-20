@@ -321,16 +321,18 @@ class Neo4jArrowClient:
 
         N.b. relationship types are dictionary-encoded.
         """
+        if concurrency < 1:
+            raise ValueError("concurrency cannot be negative")
         if properties:
             procedure_name = "gds.graph.relationshipProperties.stream"
             configuration = {
-                "relationship_properties": properties,
-                "relationship_types": relationship_types or ["*"],
+                "relationship_properties": list(properties),
+                "relationship_types": list(relationship_types) or ["*"],
             }
         else:
             procedure_name = "gds.beta.graph.relationships.stream"
             configuration = {
-                "relationship_types": relationship_types or ["*"],
+                "relationship_types": list(relationship_types) or ["*"],
             }
 
         ticket = {
@@ -352,13 +354,24 @@ class Neo4jArrowClient:
         except Exception as e:
             raise error.interpret(e)
 
-    def read_nodes(self, prop: str, *, concurrency: int = 4):
+    def read_nodes(self, properties: List[str], *,
+                   labels: List[str] = ["*"],
+                   concurrency: int = 4) -> Generator[Arrow, None, None]:
+        """
+        Stream node properties for nodes of a given label.
+
+        N.b. Unlike read_edges, there's no analog to just requesting topology.
+        """
+        # todo: runtime validation of args so we don't send garbage
+        if concurrency < 1:
+            raise ValueError("concurrency cannot be negative")
         ticket = {
-            "graph_name": self.graph, "database_name": self.database,
+            "graph_name": self.graph,
+            "database_name": self.database,
             "procedure_name": "gds.graph.nodeProperties.stream",
             "configuration": {
-                "node_labels": "*",
-                "node_properties": prop,
+                "node_labels": list(labels) or ["*"],
+                "node_properties": list(properties) or [],
             },
             "concurrency": concurrency,
         }
