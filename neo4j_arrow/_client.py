@@ -361,6 +361,7 @@ class Neo4jArrowClient:
         try:
             result = self._send_action("ABORT", config)
             if result and result.get("name", None) == config["name"]:
+                self.state = ClientState.READY
                 return True
             log.error(f"failed to abort {config['name']}, got {result}")
         except error.NotFound as e:
