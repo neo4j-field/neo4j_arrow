@@ -268,10 +268,16 @@ class Neo4jArrowClient:
 
     def nodes_done(self) -> Dict[str, Any]:
         assert not self.debug or self.state == ClientState.FEEDING_NODES
-        result = self._send_action("NODE_LOAD_DONE", { "name": self.graph })
-        if result:
-            self.state = ClientState.FEEDING_EDGES
-        return result
+        try:
+            result = self._send_action("NODE_LOAD_DONE", { "name": self.graph })
+            if result and result.get("name", None) == self.graph:
+                self.state = ClientState.FEEDING_EDGES
+                return result
+            log.warn(f"invalid response for nodes_done: {result}")
+            # TODO: what would cause this?
+            return {}
+        except Exception as e:
+            raise error.interpret(e)
 
     def write_edges(self, edges: Edges,
                     model: Optional[Graph] = None,
@@ -302,14 +308,19 @@ class Neo4jArrowClient:
         except Exception as e:
             raise e
 
-
     def edges_done(self) -> Dict[str, Any]:
         assert not self.debug or self.state == ClientState.FEEDING_EDGES
-        result = self._send_action("RELATIONSHIP_LOAD_DONE",
-                                   { "name": self.graph })
-        if result:
-            self.state = ClientState.AWAITING_GRAPH
-        return result
+        try:
+            result = self._send_action("RELATIONSHIP_LOAD_DONE",
+                                       { "name": self.graph })
+            if result and result.get("name", None) == self.graph:
+                self.state = ClientState.AWAITING_GRAPH
+                return result
+            log.warn(f"invalid response for edges_done: {result}")
+            # TODO: what would cause this?
+            return {}
+        except Exception as e:
+            raise error.interpret(e)
 
     def read_edges(self, *, properties: Optional[List[str]] = None,
                    relationship_types: List[str] = ["*"],
