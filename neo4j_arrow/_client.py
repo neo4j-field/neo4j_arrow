@@ -365,13 +365,16 @@ class Neo4jArrowClient:
         except Exception as e:
             raise error.interpret(e)
 
-    def read_nodes(self, properties: List[str], *,
+    def read_nodes(self, properties: List[str] = [], *,
                    labels: List[str] = ["*"],
                    concurrency: int = 4) -> Generator[Arrow, None, None]:
         """
-        Stream node properties for nodes of a given label.
+        Stream node properties for nodes of a given label. Oddly, this supports
+        streaming back just the node ids if given an empty list, unlike the
+        behavior of the corresponding stored procedure.
 
-        N.b. Unlike read_edges, there's no analog to just requesting topology.
+        N.b. Unlike read_edges, there's no analog to just requesting topology,
+        i.e. we can't say "give me all the node ids and their labels".
         """
         # todo: runtime validation of args so we don't send garbage
         if concurrency < 1:
