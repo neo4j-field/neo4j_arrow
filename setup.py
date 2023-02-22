@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="neo4j_arrow",
-    version="0.4.0",
+    version="0.5.0",
 
     url="https://github.com/neo4j-field/neo4j_arrow",
     maintainer="Dave Voutila",

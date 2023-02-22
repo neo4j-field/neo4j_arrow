@@ -1,5 +1,5 @@
 SHELL = /bin/sh
-VERSION = 0.4.0
+VERSION = 0.5.0
 # TODO: read VERSION from setup.py
 
 .PHONY: build build-py37 build-py38 build-py39

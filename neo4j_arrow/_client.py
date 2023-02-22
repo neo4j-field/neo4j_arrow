@@ -10,7 +10,7 @@ from . import error
 from .model import Graph, Node, Edge
 
 from typing import (
-    cast, Any, Dict, Generator, Iterable, List, Optional, Union, Tuple
+    cast, Any, Callable, Dict, Generator, Iterable, List, Optional, Union, Tuple
 )
 
 
@@ -18,6 +18,7 @@ Result = Tuple[int, int]
 Arrow = Union[pa.Table, pa.RecordBatch]
 Nodes = Union[pa.Table, pa.RecordBatch, Iterable[pa.RecordBatch]]
 Edges = Union[pa.Table, pa.RecordBatch, Iterable[pa.RecordBatch]]
+MappingFn = Callable[[Arrow], Arrow]
 
 
 class ClientState(Enum):
@@ -31,7 +32,8 @@ class ClientState(Enum):
 class Neo4jArrowClient:
     def __init__(self, host: str, graph: str, *, port: int=8491, debug = False,
                  user: str = "neo4j", password: str = "neo4j", tls: bool = True,
-                 concurrency: int = 4, database: str = "neo4j"):
+                 concurrency: int = 4, database: str = "neo4j",
+                 timeout: Optional[int] = None):
         self.host = host
         self.port = port
         self.user = user
@@ -44,6 +46,7 @@ class Neo4jArrowClient:
         self.concurrency = concurrency
         self.state = ClientState.READY
         self.debug = debug
+        self.timeout = timeout
 
     def __str__(self):
         return f"Neo4jArrowClient{{{self.user}@{self.host}:{self.port}" \
@@ -80,7 +83,8 @@ class Neo4jArrowClient:
                                                                   self.password)
                 if header:
                     self.call_opts = flight.FlightCallOptions(
-                        headers=[(header, token)]
+                        headers=[(header, token)],
+                        timeout=self.timeout,
                     )
             self.client = client
         return self.client
@@ -104,12 +108,17 @@ class Neo4jArrowClient:
 
     @classmethod
     def _nop(cls, data: Arrow) -> Arrow:
-        """Used as a no-op mapping function."""
+        """
+        Used as a no-op mapping function.
+        """
         return data
 
     @classmethod
-    def _node_mapper(cls, model: Graph, source_field: Optional[str] = None):
-        """Generate a mapping function for a Node"""
+    def _node_mapper(cls, model: Graph,
+                     source_field: Optional[str] = None) -> MappingFn:
+        """
+        Generate a mapping function for a Node.
+        """
         def _map(data: Arrow) -> Arrow:
             schema = data.schema
             if source_field:
@@ -137,8 +146,11 @@ class Neo4jArrowClient:
         return _map
 
     @classmethod
-    def _edge_mapper(cls, model: Graph, source_field: Optional[str] = None):
-        """Generate a mapping function for an Edge."""
+    def _edge_mapper(cls, model: Graph,
+                     source_field: Optional[str] = None) -> MappingFn:
+        """
+        Generate a mapping function for an Edge.
+        """
         def _map(data: Arrow) -> Arrow:
             schema = data.schema
             if source_field:
