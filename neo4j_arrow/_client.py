@@ -33,7 +33,7 @@ class Neo4jArrowClient:
     def __init__(self, host: str, graph: str, *, port: int=8491, debug = False,
                  user: str = "neo4j", password: str = "neo4j", tls: bool = True,
                  concurrency: int = 4, database: str = "neo4j",
-                 timeout: Optional[int] = None):
+                 timeout: Optional[float] = None):
         self.host = host
         self.port = port
         self.user = user
@@ -70,7 +70,10 @@ class Neo4jArrowClient:
         return client
 
     def _client(self) -> flight.FlightClient:
-        """Lazy client construction to help pickle this class."""
+        """
+        Lazy client construction to help pickle this class because a PyArrow
+        FlightClient is not serializable.
+        """
         if not hasattr(self, "client") or not self.client:
             self.call_opts = None
             if self.tls:
@@ -79,8 +82,13 @@ class Neo4jArrowClient:
                 location = flight.Location.for_grpc_tcp(self.host, self.port)
             client = flight.FlightClient(location)
             if self.user and self.password:
-                (header, token) = client.authenticate_basic_token(self.user,
-                                                                  self.password)
+                try:
+                    (header, token) = client.authenticate_basic_token(
+                        self.user, self.password
+                    )
+                except flight.FlightUnavailableError as e:
+                    # TODO can fail for DNS reasons
+                    pass
                 if header:
                     self.call_opts = flight.FlightCallOptions(
                         headers=[(header, token)],
