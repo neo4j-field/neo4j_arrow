@@ -105,13 +105,13 @@ containing the name of the graph being imported:
 > `start()` takes an optional bool keyword argument "force" that can
 > be used for aborting an existing import and restarting from scratch.
 
-### 2. Feed Nodes
+### 2a. Feed Nodes
 
 Once an import is started, you can proceed to feeding nodes to the
 server using the `write_nodes` method on the client. In its simplest
-for, simply provide a PyArrow `Table` or `RecordBatch` as the
-positional argument, making sure to follow the expected schema as
-mentioned in the
+for, simply provide a PyArrow `Table`, `RecordBatch`, or
+`Iterable[RecordBatch]` as the positional argument, making sure to
+follow the expected schema as mentioned in the
 [docs](https://neo4j.com/docs/graph-data-science/current/graph-project-apache-arrow/):
 
 ```python
@@ -120,8 +120,8 @@ import pyarrow as pa
 # Create two nodes, :Person and the other :Person:VIP, with an age property
 t = pa.Table.from_pydict({
     "nodeId": [1, 2],
-    "labels": [["Person"],["Person", "VIP"]],
-    "age": [21, 40]
+    "labels": [["User"],["User", "Admin"]],
+    "age": [21, 40],
 })
 
 result = client.write_nodes(t)
@@ -139,20 +139,137 @@ something like:
 You may call `write_nodes` numerous times, concurrently, until you've
 finished loading your node data.
 
-### 3. Feeding Relationships
+### 2b. Signalling Node Completion
 
-### 4. Signalling Completion
+Once you've finished loading your nodes, you call `nodes_done`.
+
+```python
+result = client.nodes_done()
+```
+
+On success, it will return a Python dict with details on the number of
+nodes loaded (from the point of view of the server) and the name of
+the graph beign imported. For example:
+
+```python
+{ "name": "mygraph", "node_count": 2 }
+```
+
+### 3a. Feeding Relationships
+
+Relationships are loaded similarly to nodes, albeit with a different schema requirement.
+
+```python
+import pyarrow as pa
+t = pyarrow.Table.from_pydict({
+    "sourceNodeId": [1, 1, 2],
+    "targetNodeId": [2, 1, 1],
+    "relationshipType": ["KNOWS", "SELF", "KNOWS"],
+    "weight": [1.1, 2.0, 0.3],
+})
+
+result = client.write_edges(t)
+```
+
+Like with nodes, on success the result will be a tuple of number of
+items sent and the approximate number of bytes in the payload. For the
+above example:
+
+```python
+(3, 98)
+```
+
+Again, like with nodes, you may call `write_edges` numerous times,
+concurrently.
+
+### 3b. Signaling Relationship Completion
+
+Once you've finished loading your relationships, you signal to the
+server using the `edges_done` method.
+
+```python
+result = client.edges_done()
+```
+
+On success, the result returned will be a Python dict containing the
+name of the graph being imported and the number of relationships as
+observed by the server-side:
+
+```python
+{ "name": "mygraph", "relationship_count": 3 }
+```
+
+### 4. Validating the Import
+
+At this point, there's nothing left to do from the client perspective
+and the data should be live in Neo4j. You can use the GDS Python
+Client to quickly validate the schema of the graph:
+
+```python
+from graphdatascience import GraphDataScience
+
+gds = GraphDataScience("neo4j+s://myhost.domain.com", auth=("neo4j", "neo4j"))
+gds.set_database("neo4j")
+
+G = gds.graph.get("mygraph")
+
+print({
+    "nodes": (G.node_labels(), G.node_count()),
+    "edges": (G.relationship_types(), G.relationship_count())
+})
+```
+
+For the previous examples, you should see something like:
+
+```python
+{ "nodes": (["User", "Admin"], 2), "edges": (["KNOWS", "SELF"], 3) }
+```
 
 ## Creating a Database
-...
+
+The Neo4j GDS Arrow Flight Service also supports database creation if
+running a self-managed installation of Neo4j. The process is the exact
+same as above for importing a graph, but with a single change to the
+initial start step: pass in an overriding action name with the value
+`"CREATE_DATABASE"`.
+
+```python
+result = client.start("CREATE_DATABASE")
+```
 
 ## Streaming Graph Data and Features
 
-### 1. Streaming Nodes
+The Neo4j GDS Arrow Flight Service supports streaming data from the
+graph in the form of node/relationship properties and relationship
+topology. These rpc calls are exposed via some methods in the
+`Neo4jArrowClient` to make it easier to integrate to existing
+applications.
+
+### 1. Streaming Node Properties
+
+Streaming node properties is available based on label filters.
+
 ...
 
 ### 2. Streaming Relationships
+
 ...
+
+### Streaming Caveats
+
+There are a few known caveats to be aware of when creating and consuming Arrow-based streams from Neo4j GDS:
+
+- You should consume the stream in its entirety to avoid blocking
+  server-side threads.
+  - While recent versions of GDS will include a timeout, older
+    versions will consume one or many threads until the stream is
+    consumed.
+  - There's no API call (yet) for aborting a stream, so failing to
+    consume the stream will prevent the threads from having tasks
+    scheduled on them for other stream requests.
+
+- The only way to request Nodes is to do so by property, which means
+  nodes that don't have properties may not be streamable today.
 
 # Examples in the Wild
 
