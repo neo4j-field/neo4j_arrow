@@ -227,13 +227,27 @@ class Neo4jArrowClient:
     def start(self, action: str = "CREATE_GRAPH", *,
               config: Dict[str, Any] = {},
               force: bool = False) -> Dict[str, Any]:
+        """
+        Start an import job. Defaults to graph (projection) import.
+
+        Note: for database creation, you must currently set action to the string
+        value "CREATE_DATABASE". If doing so, force will determine if we attempt
+        to overrite any existing database.
+
+        TODO: XXX: this method needs rework into 2 different methods
+        """
         assert not self.debug or self.state == ClientState.READY
         if not config:
             config = {
                 "name": self.graph,
                 "concurrency": self.concurrency,
-                "force": force,
             }
+            if action == "CREATE_DATABASE":
+                if force:
+                    config.update({ "force": force })
+            else:
+                config.update({ "database_name": self.database })
+
         # TODO: assert config has mandatory fields
         try:
             result = self._send_action(action, config)
