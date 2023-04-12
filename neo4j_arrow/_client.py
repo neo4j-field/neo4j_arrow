@@ -231,8 +231,8 @@ class Neo4jArrowClient:
         if not config:
             config = {
                 "name": self.graph,
-                "database_name": self.database,
                 "concurrency": self.concurrency,
+                "force": force,
             }
         # TODO: assert config has mandatory fields
         try:
