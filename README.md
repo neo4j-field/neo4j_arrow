@@ -247,19 +247,69 @@ applications.
 
 ### 1. Streaming Node Properties
 
-Streaming node properties is available based on label filters.
+Node properties from a graph projection can be streamed from
+GDS/AuraDS with optional filters based on node label. The stream is
+exposed as a Python generator and can be consumed lazily, but **it is
+important to fully consume the stream** as older versions of GDS do
+not have a server-side timeout. (If the client dies or fails to
+consume the full stream, server threads may be deadlocked.)
 
-...
+```python
+nodes = client.read_nodes(["louvain", "pageRank"], labels=["User"])
+
+# if you know the resulting dataset is small, you can eagerly consume into a
+# Python list
+result = list(nodes)
+
+# the `result` is now a list of PyArrow RecordBatch objects
+print(result)
+```
+
+Inspecting the schema, like in the example above, will reveal that
+only the node ids and the request properties are provided. _The labels
+are not provided and must be implied based on your labels filter!_
+(This is a GDS limitation in the stored procedures for streaming node
+properties.)
+
+The above result from the `print()` function will look like the
+following (assuming a single item in the list):
+
+```python
+[pyarrow.RecordBatch
+nodeId: int64 not null
+louvain: int64 not null
+pageRank: int64 not null]
+```
 
 ### 2. Streaming Relationships
 
-...
+Relationship properties can be streamed similar to node properties,
+however they support an alternative mode for streaming the "topology"
+of the graph when not providing any property or relationship type
+filters.
+
+> Note: the relationship types are dictionary encoded, so if accessing
+> the raw PyArrow buffer values, you will need to decode. Conversion
+> to Python dicts/lists or Pandas DataFrames will decode for you back
+> into strings/varchars.
+
+Like with node streams, the stream is provided as a Python generator
+and requires full consumption by the client program.
+
+```python
+# dump just the topology without properties
+topology = client.read_edges()
+# `topology` is a generator producing PyArrow RecordBatch objects
+
+# if you want properties and/or to target particular relationship types...
+edges = client.read_edges(properties=["score"], relationship_types=["SIMILAR"])
+```
 
 ### Streaming Caveats
 
 There are a few known caveats to be aware of when creating and consuming Arrow-based streams from Neo4j GDS:
 
-- You should consume the stream in its entirety to avoid blocking
+- You must consume the stream in its entirety to avoid blocking
   server-side threads.
   - While recent versions of GDS will include a timeout, older
     versions will consume one or many threads until the stream is
