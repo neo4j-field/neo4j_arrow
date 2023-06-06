@@ -1,6 +1,5 @@
 SHELL = /bin/sh
-VERSION = 0.5.0
-# TODO: read VERSION from setup.py
+VERSION = $(shell python setup.py --version)
 
 .PHONY: build build-py37 build-py38 build-py39
 .PHONY: test test-py37 test-py38 test-py39

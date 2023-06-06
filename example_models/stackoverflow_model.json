@@ -1,0 +1,55 @@
+{
+  "name": "stackoverflow",
+  "db": "neo4j",
+  "nodes": [
+    {
+      "source": "users",
+      "key_field": "id",
+      "label": "User",
+      "properties": {
+        "up_votes": "up_votes",
+        "down_votes": "down_votes",
+        "reputation": "reputation"
+      }
+    },
+    {
+      "source": "posts_answers",
+      "key_field": "id",
+      "label": "Answer",
+      "properties": {
+        "score": "score",
+        "comment_count": "comment_count"
+      }
+    },
+    {
+      "source": "posts_questions",
+      "key_field": "id",
+      "label": "Question",
+      "properties": {
+        "score": "score",
+        "answer_count": "answer_count",
+        "comment_count": "comment_count"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "posts_answers",
+      "source_field": "owner_user_id",
+      "target_field": "id",
+      "type": "ANSWERED",
+      "properties": {
+        "score": "score"
+      }
+    },
+    {
+      "source": "posts_questions",
+      "source_field": "owner_user_id",
+      "target_field": "id",
+      "type": "ASKED",
+      "properties": {
+        "score": "score"
+      }
+    }
+  ]
+}

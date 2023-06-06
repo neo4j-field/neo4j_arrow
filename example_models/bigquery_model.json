@@ -1,0 +1,41 @@
+{
+  "name": "testbq",
+  "db": "neo4j",
+  "nodes": [
+    {
+      "source": "paper.*",
+      "label_field": "labels",
+      "key_field": "paper"
+    },
+    {
+      "source": "authors.*",
+      "label_field": "labels",
+      "key_field": "author"
+    },
+    {
+      "source": "institution.*",
+      "label_field": "labels",
+      "key_field": "institution"
+    }
+  ],
+  "edges": [
+    {
+      "source": "citations.*",
+      "type_field": "type",
+      "source_field": "source",
+      "target_field": "target"
+    },
+    {
+      "source": "affiliation.*",
+      "type_field": "type",
+      "source_field": "author",
+      "target_field": "institution"
+    },
+    {
+      "source": "authorship.*",
+      "type_field": "type",
+      "source_field": "author",
+      "target_field": "paper"
+    }
+  ]
+}

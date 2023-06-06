@@ -73,6 +73,14 @@ class Node:
             "properties": self._properties,
         }
 
+    def validate(self):
+        if not self._label and not self._label_field:
+            raise Exception(f"either label or label_field must be provided in {self}")
+        if self._label and self._label_field:
+            raise Exception(f"use of label and label_field at the same time is not allowed in {self}")
+        if not self._key_field:
+            raise Exception(f"empty key_field in {self}")
+
     def __str__(self) -> str:
         return str(self.to_dict())
 
@@ -133,6 +141,16 @@ class Edge:
             "properties": self._properties,
         }
 
+    def validate(self):
+        if not self._type_field and not self._type:
+            raise Exception(f"either type or type_field must be provided in {self}")
+        if self._type_field and self._type:
+            raise Exception(f"use of type and type_field at the same time is not allowed in {self}")
+        if not self._source_field:
+            raise Exception(f"empty source_field in {self}")
+        if not self._target_field:
+            raise Exception(f"empty target_field in {self}")
+
     def __str__(self):
         return str(self.to_dict())
 
@@ -149,6 +167,7 @@ class Graph:
       * A List of Nodes (optional, but should have at least 1)
       * A List of Edges (optional, though boring if none!)
     """
+
     def __init__(self, *, name: str, db: str = "", nodes: List[Node] = [],
                  edges: List[Edge] = []):
         self.name = name
@@ -200,6 +219,12 @@ class Graph:
             if node.label == label:
                 return node
         return None
+
+    def validate(self):
+        for node in self.nodes:
+            node.validate()
+        for edge in self.edges:
+            edge.validate()
 
     @classmethod
     def from_json(cls, json: str) -> 'Graph':
