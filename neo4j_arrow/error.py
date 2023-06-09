@@ -8,9 +8,10 @@ from typing import Union
 
 KnownExceptions = Union[ArrowException, FlightServerError, Exception]
 
+
 def interpret(e: KnownExceptions) -> KnownExceptions:
     """
-    Try to figure out which exception occcurred based on the server response.
+    Try to figure out which exception occurred based on the server response.
     """
     try:
         message = "".join(e.args)
@@ -35,6 +36,7 @@ class Neo4jArrowException(Exception):
     """
     Base class for neo4j_arrow exceptions.
     """
+
     def __init__(self, message: str):
         self.message = message
 
@@ -43,6 +45,7 @@ class UnknownError(Neo4jArrowException):
     """
     We have no idea what is wrong :(
     """
+
     def __init__(self, message: str):
         # These errors have ugly stack traces often repeated. Try to beautify.
         # nb. In reality there's an embedded gRPC dict-like message, but let's
@@ -72,6 +75,7 @@ class InvalidArgument(Neo4jArrowException):
     Either invalid entity or invalid action requested.
     """
     pass
+
 
 class NotFound(Neo4jArrowException):
     """
