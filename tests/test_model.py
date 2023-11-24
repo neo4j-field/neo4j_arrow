@@ -1,4 +1,4 @@
-from .model import Graph, Node, Edge
+from neo4j_arrow.model import Graph, Node, Edge
 
 
 def test_json_serde():
@@ -6,10 +6,25 @@ def test_json_serde():
     g1 = (
         Graph(name="graph", db="db")
         .with_node(Node(source="a", label_field="label", key_field="key"))
-        .with_node(Node(source="b", label="LabelB", label_field="label",
-                        key_field="key", prop1="prop1"))
-        .with_edge(Edge(source="r", edge_type="REL", type_field="type",
-                        source_field="src", target_field="tgt", prop="prop"))
+        .with_node(
+            Node(
+                source="b",
+                label="LabelB",
+                label_field="label",
+                key_field="key",
+                prop1="prop1",
+            )
+        )
+        .with_edge(
+            Edge(
+                source="r",
+                edge_type="REL",
+                type_field="type",
+                source_field="src",
+                target_field="tgt",
+                prop="prop",
+            )
+        )
     )
     s = g1.to_json()
     g2 = Graph.from_json(s)
@@ -51,10 +66,25 @@ def test_retrieving_by_source():
     g = (
         Graph(name="graph", db="db")
         .with_node(Node(source="alpha", label_field="label", key_field="key"))
-        .with_node(Node(source="gs://.*/beta.*csv", label="LabelB",
-                        label_field="label", key_field="key", prop1="prop1"))
-        .with_edge(Edge(source="r.csv", edge_type="REL", type_field="type",
-                        source_field="src", target_field="tgt", prop="prop"))
+        .with_node(
+            Node(
+                source="gs://.*/beta.*csv",
+                label="LabelB",
+                label_field="label",
+                key_field="key",
+                prop1="prop1",
+            )
+        )
+        .with_edge(
+            Edge(
+                source="r.csv",
+                edge_type="REL",
+                type_field="type",
+                source_field="src",
+                target_field="tgt",
+                prop="prop",
+            )
+        )
     )
     assert g.node_for_src("alpha") is not None
     assert g.node_for_src("beta.csv") is None
@@ -67,11 +97,28 @@ def test_retrieving_by_source():
 def test_retrieving_by_pattern():
     g = (
         Graph(name="graph", db="db")
-        .with_node(Node(source="gs://.*/alpha[.]parquet", label_field="label", key_field="key"))
-        .with_node(Node(source="beta", label="LabelB", label_field="label",
-                        key_field="key", prop1="prop1"))
-        .with_edge(Edge(source="r_[0-9]*.csv", edge_type="REL", type_field="type",
-                        source_field="src", target_field="tgt", prop="prop"))
+        .with_node(
+            Node(source="gs://.*/alpha[.]parquet", label_field="label", key_field="key")
+        )
+        .with_node(
+            Node(
+                source="beta",
+                label="LabelB",
+                label_field="label",
+                key_field="key",
+                prop1="prop1",
+            )
+        )
+        .with_edge(
+            Edge(
+                source="r_[0-9]*.csv",
+                edge_type="REL",
+                type_field="type",
+                source_field="src",
+                target_field="tgt",
+                prop="prop",
+            )
+        )
     )
     assert g.node_for_src("gs://bucket/nodes/alpha.parquet") is not None
     assert g.node_for_src("beta.csv.gz") is not None

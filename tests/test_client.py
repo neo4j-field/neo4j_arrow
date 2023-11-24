@@ -1,5 +1,5 @@
-from . import Neo4jArrowClient
-from .model import Graph, Node, Edge
+from neo4j_arrow import Neo4jArrowClient
+from neo4j_arrow.model import Graph, Node, Edge
 
 import pyarrow as pa
 
@@ -15,9 +15,16 @@ def test_nop_mapper():
 
 def test_node_mapper():
     SRC_KEY = "gcs_source"
-    g = Graph(name="junk", nodes=[Node(source="gs://.*/junk.*parquet",
-                                       label_field="my_labels",
-                                       key_field="my_key")])
+    g = Graph(
+        name="junk",
+        nodes=[
+            Node(
+                source="gs://.*/junk.*parquet",
+                label_field="my_labels",
+                key_field="my_key",
+            )
+        ],
+    )
     mapper = Neo4jArrowClient._node_mapper(g, SRC_KEY)
 
     src = "gs://bucket/folder/junk_0001.parquet"
@@ -35,15 +42,21 @@ def test_node_mapper():
 
 def test_edge_mapper():
     SRC_KEY = "gcs_source"
-    g = Graph(name="junk", edges=[Edge(source="gs://.*/junk.*parquet",
-                                       type_field="my_type",
-                                       source_field="my_src",
-                                       target_field="my_tgt")])
+    g = Graph(
+        name="junk",
+        edges=[
+            Edge(
+                source="gs://.*/junk.*parquet",
+                type_field="my_type",
+                source_field="my_src",
+                target_field="my_tgt",
+            )
+        ],
+    )
     mapper = Neo4jArrowClient._edge_mapper(g, SRC_KEY)
 
     src = "gs://bucket/folder/junk_0001.parquet"
-    t = pa.table({"my_type": ["JUNK"], "my_src": ["junk_id"],
-                  "my_tgt": ["junk_id"]})
+    t = pa.table({"my_type": ["JUNK"], "my_src": ["junk_id"], "my_tgt": ["junk_id"]})
     schema = t.schema.with_metadata({SRC_KEY: src})
     table = pa.Table.from_arrays(t.columns, schema=schema)
 

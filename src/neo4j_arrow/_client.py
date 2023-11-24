@@ -10,7 +10,16 @@ from . import error
 from .model import Graph
 
 from typing import (
-    cast, Any, Callable, Dict, Generator, Iterable, List, Optional, Union, Tuple
+    cast,
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Union,
+    Tuple,
 )
 
 Result = Tuple[int, int]
@@ -44,10 +53,22 @@ class Neo4jArrowClient:
     call_opts: flight.FlightCallOptions
     logger: logging.Logger
 
-    def __init__(self, host: str, graph: str, *, port: int = 8491, database: str = "neo4j",
-                 user: str = "neo4j", password: str = "neo4j", tls: bool = True,
-                 concurrency: int = 4, timeout: Optional[float] = None, max_chunk_size: int = 10_000,
-                 debug: bool = False, logger: logging.Logger = None):
+    def __init__(
+        self,
+        host: str,
+        graph: str,
+        *,
+        port: int = 8491,
+        database: str = "neo4j",
+        user: str = "neo4j",
+        password: str = "neo4j",
+        tls: bool = True,
+        concurrency: int = 4,
+        timeout: Optional[float] = None,
+        max_chunk_size: int = 10_000,
+        debug: bool = False,
+        logger: Optional[logging.Logger] = None,
+    ):
         self.host = host
         self.port = port
         self.user = user
@@ -66,12 +87,15 @@ class Neo4jArrowClient:
             logger = logging.getLogger("Neo4jArrowClient")
         self.logger = logger
 
-    def __str__(self):
-        return f"Neo4jArrowClient{{{self.user}@{self.host}:{self.port}/{self.database}?graph={self.graph}" \
-               f"&encrypted={self.tls}&concurrency={self.concurrency}&debug={self.debug}&timeout={self.timeout}" \
-               f"&max_chunk_size={self.max_chunk_size}}}"
+    def __str__(self) -> str:
+        return (
+            "Neo4jArrowClient{{{self.user}@{self.host}:{self.port}/"
+            f"{self.database}?graph={self.graph}&encrypted={self.tls}&"
+            f"concurrency={self.concurrency}&debug={self.debug}&timeout={self.timeout}"
+            f"&max_chunk_size={self.max_chunk_size}}}"
+        )
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         # Remove the FlightClient and CallOpts as they're not serializable
         if "client" in state:
@@ -80,11 +104,20 @@ class Neo4jArrowClient:
             del state["call_opts"]
         return state
 
-    def copy(self) -> 'Neo4jArrowClient':
-        client = Neo4jArrowClient(self.host, self.graph, port=self.port, database=self.database, user=self.user,
-                                  password=self.password, tls=self.tls, concurrency=self.concurrency,
-                                  timeout=self.timeout, max_chunk_size=self.max_chunk_size,
-                                  debug=self.debug)
+    def copy(self) -> "Neo4jArrowClient":
+        client = Neo4jArrowClient(
+            self.host,
+            self.graph,
+            port=self.port,
+            database=self.database,
+            user=self.user,
+            password=self.password,
+            tls=self.tls,
+            concurrency=self.concurrency,
+            timeout=self.timeout,
+            max_chunk_size=self.max_chunk_size,
+            debug=self.debug,
+        )
         client.state = self.state
         return client
 
@@ -128,10 +161,12 @@ class Neo4jArrowClient:
         except Exception as e:
             raise error.interpret(e)
 
-    def _get_chunks(self, ticket: Dict) -> Generator[Arrow, None, None]:
+    def _get_chunks(self, ticket: Dict[str, Any]) -> Generator[Arrow, None, None]:
         client = self._client()
         try:
-            result = client.do_get(pa.flight.Ticket(json.dumps(ticket).encode("utf8")), self.call_opts)
+            result = client.do_get(
+                pa.flight.Ticket(json.dumps(ticket).encode("utf8")), self.call_opts
+            )
             for chunk, _ in result:
                 yield chunk
         except Exception as e:
@@ -145,8 +180,9 @@ class Neo4jArrowClient:
         return data
 
     @classmethod
-    def _node_mapper(cls, model: Graph,
-                     source_field: Optional[str] = None) -> MappingFn:
+    def _node_mapper(
+        cls, model: Graph, source_field: Optional[str] = None
+    ) -> MappingFn:
         """
         Generate a mapping function for a Node.
         """
@@ -160,25 +196,33 @@ class Neo4jArrowClient:
                 my_label = data["labels"][0].as_py()
                 node = model.node_by_label(my_label)
             if not node:
-                raise Exception("cannot find matching node in model given "
-                                f"{data.schema}")
+                raise Exception(
+                    "cannot find matching node in model given " f"{data.schema}"
+                )
 
-            columns, fields = cls._rename_and_add_column([], [], data, node.key_field, "nodeId")
+            columns, fields = cls._rename_and_add_column(
+                [], [], data, node.key_field, "nodeId"
+            )
             if node.label:
                 columns.append(pa.array([node.label] * len(data), pa.string()))
                 fields.append(pa.field("labels", pa.string()))
             if node.label_field:
-                columns, fields = cls._rename_and_add_column(columns, fields, data, node.label_field, "labels")
+                columns, fields = cls._rename_and_add_column(
+                    columns, fields, data, node.label_field, "labels"
+                )
             for name in node.properties:
-                columns, fields = cls._rename_and_add_column(columns, fields, data, name, node.properties[name])
+                columns, fields = cls._rename_and_add_column(
+                    columns, fields, data, name, node.properties[name]
+                )
 
             return data.from_arrays(columns, schema=pa.schema(fields))
 
         return _map
 
     @classmethod
-    def _edge_mapper(cls, model: Graph,
-                     source_field: Optional[str] = None) -> MappingFn:
+    def _edge_mapper(
+        cls, model: Graph, source_field: Optional[str] = None
+    ) -> MappingFn:
         """
         Generate a mapping function for an Edge.
         """
@@ -192,33 +236,52 @@ class Neo4jArrowClient:
                 my_type = data["type"][0].as_py()
                 edge = model.edge_by_type(my_type)
             if not edge:
-                raise Exception("cannot find matching edge in model given "
-                                f"{data.schema}")
+                raise Exception(
+                    "cannot find matching edge in model given " f"{data.schema}"
+                )
 
-            columns, fields = cls._rename_and_add_column([], [], data, edge.source_field, "sourceNodeId")
-            columns, fields = cls._rename_and_add_column(columns, fields, data, edge.target_field, "targetNodeId")
+            columns, fields = cls._rename_and_add_column(
+                [], [], data, edge.source_field, "sourceNodeId"
+            )
+            columns, fields = cls._rename_and_add_column(
+                columns, fields, data, edge.target_field, "targetNodeId"
+            )
             if edge.type:
                 columns.append(pa.array([edge.type] * len(data), pa.string()))
                 fields.append(pa.field("relationshipType", pa.string()))
             if edge.type_field:
-                columns, fields = cls._rename_and_add_column(columns, fields, data, edge.type_field, "relationshipType")
+                columns, fields = cls._rename_and_add_column(
+                    columns, fields, data, edge.type_field, "relationshipType"
+                )
             for name in edge.properties:
-                columns, fields = cls._rename_and_add_column(columns, fields, data, name, edge.properties[name])
+                columns, fields = cls._rename_and_add_column(
+                    columns, fields, data, name, edge.properties[name]
+                )
 
             return data.from_arrays(columns, schema=pa.schema(fields))
 
         return _map
 
     @classmethod
-    def _rename_and_add_column(cls, columns, fields: List, data: Arrow, current_name, new_name: str) -> (List, List):
+    def _rename_and_add_column(
+        cls,
+        columns: List[Union[pa.Array, pa.ChunkedArray]],
+        fields: List[pa.Field],
+        data: Arrow,
+        current_name: str,
+        new_name: str,
+    ) -> Tuple[List[Union[pa.Array, pa.ChunkedArray]], List[pa.Field]]:
         idx = data.schema.get_field_index(current_name)
         columns.append(data.columns[idx])
         fields.append(data.schema.field(idx).with_name(new_name))
         return columns, fields
 
-    def _write_batches(self, desc: Dict[str, Any],
-                       batches: Union[pa.RecordBatch, Iterable[pa.RecordBatch]],
-                       mapping_fn: MappingFn = None) -> Result:
+    def _write_batches(
+        self,
+        desc: Dict[str, Any],
+        batches: Union[pa.RecordBatch, Iterable[pa.RecordBatch]],
+        mapping_fn: Optional[MappingFn] = None,
+    ) -> Result:
         """
         Write PyArrow RecordBatches to the GDS Flight service.
         """
@@ -253,9 +316,13 @@ class Neo4jArrowClient:
             raise error.interpret(e)
         return n_rows, n_bytes
 
-    def start(self, action: str = "CREATE_GRAPH", *,
-              config: Dict[str, Any] = None,
-              force: bool = False) -> Dict[str, Any]:
+    def start(
+        self,
+        action: str = "CREATE_GRAPH",
+        *,
+        config: Optional[Dict[str, Any]] = None,
+        force: bool = False,
+    ) -> Dict[str, Any]:
         if not config:
             config = {
                 "name": self.graph,
@@ -269,28 +336,39 @@ class Neo4jArrowClient:
 
         return self._start(action, config=config, force=force)
 
-    def start_create_graph(self, *, force: bool = False, undirected_rel_types: Iterable[str] = [],
-                           inverse_indexed_rel_types: Iterable[str] = []) -> \
-            Dict[str, Any]:
+    def start_create_graph(
+        self,
+        *,
+        force: bool = False,
+        undirected_rel_types: Iterable[str] = [],
+        inverse_indexed_rel_types: Iterable[str] = [],
+    ) -> Dict[str, Any]:
         config = {
             "name": self.graph,
             "database_name": self.database,
             "concurrency": self.concurrency,
             "undirected_relationship_types": list(undirected_rel_types),
-            "inverse_indexed_relationship_types": list(inverse_indexed_rel_types)
+            "inverse_indexed_relationship_types": list(inverse_indexed_rel_types),
         }
 
         return self._start("CREATE_GRAPH", config=config, force=force)
 
-    def start_create_database(self, *, force: bool = False, id_type: str = "", id_property: str = "",
-                              record_format: str = "", high_io: bool = True, use_bad_collector: bool = False) -> \
-            Dict[str, Any]:
+    def start_create_database(
+        self,
+        *,
+        force: bool = False,
+        id_type: str = "",
+        id_property: str = "",
+        record_format: str = "",
+        high_io: bool = True,
+        use_bad_collector: bool = False,
+    ) -> Dict[str, Any]:
         config = {
             "name": self.graph,
             "concurrency": self.concurrency,
             "high_io": high_io,
             "use_bad_collector": use_bad_collector,
-            "force": force
+            "force": force,
         }
 
         if id_type:
@@ -302,13 +380,20 @@ class Neo4jArrowClient:
 
         return self._start("CREATE_DATABASE", config=config, force=force)
 
-    def _start(self, action: str = "CREATE_GRAPH", *,
-               config: Dict[str, Any] = None,
-               force: bool = False) -> Dict[str, Any]:
+    def _start(
+        self,
+        action: str = "CREATE_GRAPH",
+        *,
+        config: Optional[Dict[str, Any]] = None,
+        force: bool = False,
+    ) -> Dict[str, Any]:
         """
         Start an import job. Defaults to graph (projection) import.
         """
         assert not self.debug or self.state == ClientState.READY
+
+        if config is None:
+            config = {}
 
         try:
             result = self._send_action(action, config)
@@ -316,25 +401,35 @@ class Neo4jArrowClient:
                 self.state = ClientState.FEEDING_NODES
                 return result
 
-            raise error.Neo4jArrowException(f"failed to start {action} for {config['name']}, got {result}")
-        except error.AlreadyExists as e:
+            raise error.Neo4jArrowException(
+                f"failed to start {action} for {config['name']}, got {result}"
+            )
+        except error.AlreadyExists:
             if force:
-                self.logger.warning(f"forcing cancellation of existing {action} import"
-                                    f" for {config['name']}")
+                self.logger.warning(
+                    f"forcing cancellation of existing {action} import"
+                    f" for {config['name']}"
+                )
                 if self.abort():
                     return self._start(action, config=config)
 
-            self.logger.error(f"{action} import job already exists for {config['name']}")
+            self.logger.error(
+                f"{action} import job already exists for {config['name']}"
+            )
         except Exception as e:
             self.logger.error(f"fatal error performing action {action}: {e}")
             raise e
 
         return {}
 
-    def _write_entities(self, desc: Dict[str, Any], entities: Union[Nodes, Edges], mapper: MappingFn) -> Result:
+    def _write_entities(
+        self, desc: Dict[str, Any], entities: Union[Nodes, Edges], mapper: MappingFn
+    ) -> Result:
         try:
             if isinstance(entities, pa.Table):
-                entities = mapper(entities).to_batches(max_chunksize=self.max_chunk_size)
+                entities = mapper(entities).to_batches(
+                    max_chunksize=self.max_chunk_size
+                )
                 mapper = self._nop
 
             return self._write_batches(desc, entities, mapper)
@@ -342,12 +437,18 @@ class Neo4jArrowClient:
             self.logger.error(f"no existing import job found for graph f{self.graph}")
             raise e
         except Exception as e:
-            self.logger.error(f"fatal error while feeding {desc['entity_type']}s for graph {self.graph}: {e}")
+            self.logger.error(
+                f"fatal error while feeding {desc['entity_type']}s for "
+                f"graph {self.graph}: {e}"
+            )
             raise e
 
-    def write_nodes(self, nodes: Nodes,
-                    model: Optional[Graph] = None,
-                    source_field: Optional[str] = None) -> Result:
+    def write_nodes(
+        self,
+        nodes: Nodes,
+        model: Optional[Graph] = None,
+        source_field: Optional[str] = None,
+    ) -> Result:
         assert not self.debug or self.state == ClientState.FEEDING_NODES
         desc = {"name": self.graph, "entity_type": "node"}
         if model:
@@ -367,13 +468,18 @@ class Neo4jArrowClient:
                 self.state = ClientState.FEEDING_EDGES
                 return result
 
-            raise error.Neo4jArrowException(f"invalid response for nodes_done for graph {self.graph}, got {result}")
+            raise error.Neo4jArrowException(
+                f"invalid response for nodes_done for graph {self.graph}, got {result}"
+            )
         except Exception as e:
             raise error.interpret(e)
 
-    def write_edges(self, edges: Edges,
-                    model: Optional[Graph] = None,
-                    source_field: Optional[str] = None) -> Result:
+    def write_edges(
+        self,
+        edges: Edges,
+        model: Optional[Graph] = None,
+        source_field: Optional[str] = None,
+    ) -> Result:
         assert not self.debug or self.state == ClientState.FEEDING_EDGES
         desc = {"name": self.graph, "entity_type": "relationship"}
         if model:
@@ -388,19 +494,24 @@ class Neo4jArrowClient:
         assert not self.debug or self.state == ClientState.FEEDING_EDGES
 
         try:
-            result = self._send_action("RELATIONSHIP_LOAD_DONE",
-                                       {"name": self.graph})
+            result = self._send_action("RELATIONSHIP_LOAD_DONE", {"name": self.graph})
             if result and result.get("name", None) == self.graph:
                 self.state = ClientState.AWAITING_GRAPH
                 return result
 
-            raise error.Neo4jArrowException(f"invalid response for edges_done for graph {self.graph}, got {result}")
+            raise error.Neo4jArrowException(
+                f"invalid response for edges_done for graph {self.graph}, got {result}"
+            )
         except Exception as e:
             raise error.interpret(e)
 
-    def read_edges(self, *, properties: Optional[List[str]] = None,
-                   relationship_types: List[str] = None,
-                   concurrency: int = 4) -> Generator[Arrow, None, None]:
+    def read_edges(
+        self,
+        *,
+        properties: Optional[List[str]] = None,
+        relationship_types: Optional[List[str]] = None,
+        concurrency: int = 4,
+    ) -> Generator[Arrow, None, None]:
         """
         Stream edges (relationships) from a Neo4j graph projection. When
         requesting properties, they must be requested explicitly. However,
@@ -413,26 +524,38 @@ class Neo4jArrowClient:
         if properties:
             procedure_name = "gds.graph.relationshipProperties.stream"
             configuration = {
-                "relationship_properties": list(properties),
-                "relationship_types": list(relationship_types) or ["*"],
+                "relationship_properties": list(
+                    properties if properties is not None else []
+                ),
+                "relationship_types": list(
+                    relationship_types if relationship_types is not None else ["*"]
+                ),
             }
         else:
             procedure_name = "gds.beta.graph.relationships.stream"
             configuration = {
-                "relationship_types": list(relationship_types) or ["*"],
+                "relationship_types": list(
+                    relationship_types if relationship_types is not None else ["*"]
+                ),
             }
 
-        return self._get_chunks({
-            "graph_name": self.graph,
-            "database_name": self.database,
-            "procedure_name": procedure_name,
-            "configuration": configuration,
-            "concurrency": concurrency,
-        })
+        return self._get_chunks(
+            {
+                "graph_name": self.graph,
+                "database_name": self.database,
+                "procedure_name": procedure_name,
+                "configuration": configuration,
+                "concurrency": concurrency,
+            }
+        )
 
-    def read_nodes(self, properties: List[str] = None, *,
-                   labels: List[str] = None,
-                   concurrency: int = 4) -> Generator[Arrow, None, None]:
+    def read_nodes(
+        self,
+        properties: Optional[List[str]] = None,
+        *,
+        labels: Optional[List[str]] = None,
+        concurrency: int = 4,
+    ) -> Generator[Arrow, None, None]:
         """
         Stream node properties for nodes of a given label. Oddly, this supports
         streaming back just the node ids if given an empty list, unlike the
@@ -445,16 +568,20 @@ class Neo4jArrowClient:
         if concurrency < 1:
             raise ValueError("concurrency cannot be negative")
 
-        return self._get_chunks({
-            "graph_name": self.graph,
-            "database_name": self.database,
-            "procedure_name": "gds.graph.nodeProperties.stream",
-            "configuration": {
-                "node_labels": list(labels) or ["*"],
-                "node_properties": list(properties) or [],
-            },
-            "concurrency": concurrency,
-        })
+        return self._get_chunks(
+            {
+                "graph_name": self.graph,
+                "database_name": self.database,
+                "procedure_name": "gds.graph.nodeProperties.stream",
+                "configuration": {
+                    "node_labels": list(labels if labels is not None else ["*"]),
+                    "node_properties": list(
+                        properties if properties is not None else []
+                    ),
+                },
+                "concurrency": concurrency,
+            }
+        )
 
     def abort(self, name: Optional[str] = None) -> bool:
         """Try aborting an existing import process."""
@@ -467,14 +594,16 @@ class Neo4jArrowClient:
                 self.state = ClientState.READY
                 return True
 
-            raise error.Neo4jArrowException(f"invalid response for abort of graph {self.graph}, got {result}")
-        except error.NotFound as e:
+            raise error.Neo4jArrowException(
+                f"invalid response for abort of graph {self.graph}, got {result}"
+            )
+        except error.NotFound:
             self.logger.warning(f"no existing import for {config['name']}")
         except Exception as e:
             self.logger.error(f"error aborting {config['name']}: {e}")
         return False
 
-    def wait(self, timeout: int = 0):
+    def wait(self, timeout: int = 0) -> None:
         """wait for completion"""
         assert not self.debug or self.state == ClientState.AWAITING_GRAPH
         self.state = ClientState.AWAITING_GRAPH
