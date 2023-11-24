@@ -97,9 +97,7 @@ def test_retrieving_by_source():
 def test_retrieving_by_pattern():
     g = (
         Graph(name="graph", db="db")
-        .with_node(
-            Node(source="gs://.*/alpha[.]parquet", label_field="label", key_field="key")
-        )
+        .with_node(Node(source="gs://.*/alpha[.]parquet", label_field="label", key_field="key"))
         .with_node(
             Node(
                 source="beta",

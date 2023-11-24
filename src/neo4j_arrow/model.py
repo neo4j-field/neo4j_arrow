@@ -84,10 +84,7 @@ class Node:
         if not self._label and not self._label_field:
             raise Exception(f"either label or label_field must be provided in {self}")
         if self._label and self._label_field:
-            raise Exception(
-                f"use of label and label_field at the same time is not allowed "
-                f"in {self}"
-            )
+            raise Exception(f"use of label and label_field at the same time is not allowed " f"in {self}")
         if not self._key_field:
             raise Exception(f"empty key_field in {self}")
 
@@ -162,9 +159,7 @@ class Edge:
         if not self._type_field and not self._type:
             raise Exception(f"either type or type_field must be provided in {self}")
         if self._type_field and self._type:
-            raise Exception(
-                f"use of type and type_field at the same time is not allowed in {self}"
-            )
+            raise Exception(f"use of type and type_field at the same time is not allowed in {self}")
         if not self._source_field:
             raise Exception(f"empty source_field in {self}")
         if not self._target_field:
@@ -187,9 +182,7 @@ class Graph:
       * A List of Edges (optional, though boring if none!)
     """
 
-    def __init__(
-        self, *, name: str, db: str = "", nodes: List[Node] = [], edges: List[Edge] = []
-    ):
+    def __init__(self, *, name: str, db: str = "", nodes: List[Node] = [], edges: List[Edge] = []):
         self.name = name
         self.db = db
         self.nodes = nodes
@@ -208,14 +201,10 @@ class Graph:
         return Graph(name=self.name, db=self.db, nodes=self.nodes, edges=edges)
 
     def with_node(self, node: Node) -> "Graph":
-        return Graph(
-            name=self.name, db=self.db, nodes=self.nodes + [node], edges=self.edges
-        )
+        return Graph(name=self.name, db=self.db, nodes=self.nodes + [node], edges=self.edges)
 
     def with_edge(self, edge: Edge) -> "Graph":
-        return Graph(
-            name=self.name, db=self.db, nodes=self.nodes, edges=self.edges + [edge]
-        )
+        return Graph(name=self.name, db=self.db, nodes=self.nodes, edges=self.edges + [edge])
 
     def node_for_src(self, source: str) -> Union[None, Node]:
         """Find a Node in a Graph based on matching source pattern."""
@@ -272,9 +261,7 @@ class Graph:
             )
             for e in obj.get("edges", [])
         ]
-        return Graph(
-            name=obj["name"], db=obj.get("db", "neo4j"), nodes=nodes, edges=edges
-        )
+        return Graph(name=obj["name"], db=obj.get("db", "neo4j"), nodes=nodes, edges=edges)
 
     def to_dict(self) -> Dict[str, Any]:
         return {

@@ -49,9 +49,7 @@ class UnknownError(Neo4jArrowException):
         # nb. In reality there's an embedded gRPC dict-like message, but let's
         # not introduce dict parsing here because that's a security issue.
         try:
-            self.message = (
-                message.replace(r"\n", "\n").replace(r"\'", "'").splitlines()[-1]
-            )
+            self.message = message.replace(r"\n", "\n").replace(r"\'", "'").splitlines()[-1]
         except Exception:
             self.message = message
 
