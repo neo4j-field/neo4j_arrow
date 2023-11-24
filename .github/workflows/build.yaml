@@ -21,6 +21,7 @@ jobs:
             3.9
             3.10
             3.11
+            3.12
       - name: install poetry
         run: |
           python3 -m venv $POETRY_HOME
@@ -31,4 +32,4 @@ jobs:
       - name: install dependencies and build
         run: poetry install
       - name: run tests
-        run: poetry run tox
+        run: poetry run tox -p
