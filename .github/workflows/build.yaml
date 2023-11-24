@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  POETRY_HOME: "/opt/poetry"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,9 +22,12 @@ jobs:
             3.10
             3.11
       - name: install poetry
-        run: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+        run: |
+          python3 -m venv $POETRY_HOME
+          $POETRY_HOME/bin/pip install poetry==1.7.1
+          $POETRY_HOME/bin/poetry --version
       - name: add poetry to path
-        run: echo "${HOME}/.poetry/bin" >> $GITHUB_PATH
+        run: echo "${POETRY_HOME}/bin" >> $GITHUB_PATH
       - name: install dependencies and build
         run: poetry install
       - name: run tests
