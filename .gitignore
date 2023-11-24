@@ -132,3 +132,6 @@ dmypy.json
 
 # ide
 .idea/
+
+.direnv
+.envrc

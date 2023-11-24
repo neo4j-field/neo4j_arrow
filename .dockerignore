@@ -1,9 +1,0 @@
-Dockerfile
-neo4j_arrow.egg-info/
-venv/
-.git/
-.tox/
-.mypy_cache/
-.pytest_cache/
-dist/
-.#*

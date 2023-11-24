@@ -10,23 +10,30 @@ from typing import Any, Dict, Generic, List, Optional, Union, TypeVar
 
 
 class _NodeEncoder(JSONEncoder):
-    def default(self, n: 'Node'):
+    def default(self, n: "Node") -> object:
         return n.to_dict()
 
 
 class _EdgeEncoder(JSONEncoder):
-    def default(self, e: 'Edge'):
+    def default(self, e: "Edge") -> object:
         return e.to_dict()
 
 
 class _GraphEncoder(JSONEncoder):
-    def default(self, g: 'Graph'):
+    def default(self, g: "Graph") -> object:
         return g.to_dict()
 
 
 class Node:
-    def __init__(self, *, source: str, label: str = "", label_field: str = "",
-                 key_field: str, **properties: Dict[str, Any]):
+    def __init__(
+        self,
+        *,
+        source: str,
+        label: str = "",
+        label_field: str = "",
+        key_field: str,
+        **properties: Dict[str, Any],
+    ):
         self._source = source
         self._label = label
         self._label_field = label_field
@@ -73,11 +80,11 @@ class Node:
             "properties": self._properties,
         }
 
-    def validate(self):
+    def validate(self) -> None:
         if not self._label and not self._label_field:
             raise Exception(f"either label or label_field must be provided in {self}")
         if self._label and self._label_field:
-            raise Exception(f"use of label and label_field at the same time is not allowed in {self}")
+            raise Exception(f"use of label and label_field at the same time is not allowed " f"in {self}")
         if not self._key_field:
             raise Exception(f"empty key_field in {self}")
 
@@ -86,9 +93,16 @@ class Node:
 
 
 class Edge:
-    def __init__(self, *, source: str, edge_type: str = "", type_field: str = "",
-                 source_field: str, target_field: str,
-                 **properties: Dict[str, Any]):
+    def __init__(
+        self,
+        *,
+        source: str,
+        edge_type: str = "",
+        type_field: str = "",
+        source_field: str,
+        target_field: str,
+        **properties: Dict[str, Any],
+    ):
         self._source = source
         self._type = edge_type
         self._type_field = type_field
@@ -141,7 +155,7 @@ class Edge:
             "properties": self._properties,
         }
 
-    def validate(self):
+    def validate(self) -> None:
         if not self._type_field and not self._type:
             raise Exception(f"either type or type_field must be provided in {self}")
         if self._type_field and self._type:
@@ -151,7 +165,7 @@ class Edge:
         if not self._target_field:
             raise Exception(f"empty target_field in {self}")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.to_dict())
 
 
@@ -168,32 +182,29 @@ class Graph:
       * A List of Edges (optional, though boring if none!)
     """
 
-    def __init__(self, *, name: str, db: str = "", nodes: List[Node] = [],
-                 edges: List[Edge] = []):
+    def __init__(self, *, name: str, db: str = "", nodes: List[Node] = [], edges: List[Edge] = []):
         self.name = name
         self.db = db
         self.nodes = nodes
         self.edges = edges
 
-    def named(self, name: str) -> 'Graph':
+    def named(self, name: str) -> "Graph":
         return Graph(name=name, db=self.db, nodes=self.nodes, edges=self.edges)
 
-    def in_db(self, db: str) -> 'Graph':
+    def in_db(self, db: str) -> "Graph":
         return Graph(name=self.name, db=db, nodes=self.nodes, edges=self.edges)
 
-    def with_nodes(self, nodes: List[Node]) -> 'Graph':
+    def with_nodes(self, nodes: List[Node]) -> "Graph":
         return Graph(name=self.name, db=self.db, nodes=nodes, edges=self.edges)
 
-    def with_edges(self, edges: List[Edge]) -> 'Graph':
+    def with_edges(self, edges: List[Edge]) -> "Graph":
         return Graph(name=self.name, db=self.db, nodes=self.nodes, edges=edges)
 
-    def with_node(self, node: Node) -> 'Graph':
-        return Graph(name=self.name, db=self.db, nodes=self.nodes + [node],
-                     edges=self.edges)
+    def with_node(self, node: Node) -> "Graph":
+        return Graph(name=self.name, db=self.db, nodes=self.nodes + [node], edges=self.edges)
 
-    def with_edge(self, edge: Edge) -> 'Graph':
-        return Graph(name=self.name, db=self.db, nodes=self.nodes,
-                     edges=self.edges + [edge])
+    def with_edge(self, edge: Edge) -> "Graph":
+        return Graph(name=self.name, db=self.db, nodes=self.nodes, edges=self.edges + [edge])
 
     def node_for_src(self, source: str) -> Union[None, Node]:
         """Find a Node in a Graph based on matching source pattern."""
@@ -220,30 +231,37 @@ class Graph:
                 return node
         return None
 
-    def validate(self):
+    def validate(self) -> None:
         for node in self.nodes:
             node.validate()
         for edge in self.edges:
             edge.validate()
 
     @classmethod
-    def from_json(cls, json: str) -> 'Graph':
+    def from_json(cls, json: str) -> "Graph":
         obj = loads(json)
         nodes = [
-            Node(source=n["source"], label=n.get("label", ""),
-                 label_field=n.get("label_field", ""), key_field=n["key_field"],
-                 **n.get("properties", {}))
+            Node(
+                source=n["source"],
+                label=n.get("label", ""),
+                label_field=n.get("label_field", ""),
+                key_field=n["key_field"],
+                **n.get("properties", {}),
+            )
             for n in obj.get("nodes", [])
         ]
         edges = [
-            Edge(source=e["source"], edge_type=e.get("type", ""),
-                 type_field=e.get("type_field", ""),
-                 source_field=e["source_field"],
-                 target_field=e["target_field"], **e.get("properties", {}))
+            Edge(
+                source=e["source"],
+                edge_type=e.get("type", ""),
+                type_field=e.get("type_field", ""),
+                source_field=e["source_field"],
+                target_field=e["target_field"],
+                **e.get("properties", {}),
+            )
             for e in obj.get("edges", [])
         ]
-        return Graph(name=obj["name"], db=obj.get("db", "neo4j"),
-                     nodes=nodes, edges=edges)
+        return Graph(name=obj["name"], db=obj.get("db", "neo4j"), nodes=nodes, edges=edges)
 
     def to_dict(self) -> Dict[str, Any]:
         return {

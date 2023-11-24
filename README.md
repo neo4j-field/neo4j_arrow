@@ -41,6 +41,23 @@ If you don't want requirements on pulling this module from github via
 https, simply vendor a copy of the module into your project. You only
 need the `neo4j_arrow` directory.
 
+# Build
+
+This project uses [poetry]() as the build tool.
+Install `poetry`, define your environment with `poetry env use` and invoke `poetry install` to install dependencies.
+
+To build;
+
+```
+poetry build
+```
+
+To run tests;
+
+```
+poetry run tox
+```
+
 # Usage
 
 The client is designed to be lightweight and lazy. As such, you should
