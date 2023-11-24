@@ -1,0 +1,28 @@
+name: build and test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: set up python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: |
+            3.9
+            3.10
+            3.11
+      - name: install poetry
+        run: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+      - name: add poetry to path
+        run: echo "${HOME}/.poetry/bin" >> $GITHUB_PATH
+      - name: install dependencies and build
+        run: poetry install
+      - name: run tests
+        run: poetry run tox
