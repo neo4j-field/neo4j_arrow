@@ -37,6 +37,25 @@ class ClientState(Enum):
     GRAPH_READY = "done"
 
 
+class ProcedureNames:
+    nodes_single_property: str = "gds.graph.nodeProperty.stream"
+    nodes_multiple_property: str = "gds.graph.nodeProperties.stream"
+    edges_single_property: str = "gds.graph.relationshipProperty.stream"
+    edges_multiple_property: str = "gds.graph.relationshipProperties.stream"
+    edges_topology: str = "gds.graph.relationships.stream"
+
+
+def procedure_names(version: Optional[str] = None) -> ProcedureNames:
+    if not version:
+        return ProcedureNames()
+    elif version.startswith("2.5"):
+        return ProcedureNames()
+    else:
+        names = ProcedureNames()
+        names.edges_topology = "gds.beta.graph.relationships.stream"
+        return names
+
+
 class Neo4jArrowClient:
     host: str
     port: int
@@ -68,6 +87,7 @@ class Neo4jArrowClient:
         max_chunk_size: int = 10_000,
         debug: bool = False,
         logger: Optional[logging.Logger] = None,
+        proc_names: Optional[ProcedureNames] = None,
     ):
         self.host = host
         self.port = port
@@ -86,6 +106,9 @@ class Neo4jArrowClient:
         if not logger:
             logger = logging.getLogger("Neo4jArrowClient")
         self.logger = logger
+        if not proc_names:
+            proc_names = procedure_names()
+        self.proc_names = proc_names
 
     def __str__(self) -> str:
         return (
@@ -476,13 +499,13 @@ class Neo4jArrowClient:
         if concurrency < 1:
             raise ValueError("concurrency cannot be negative")
         if properties:
-            procedure_name = "gds.graph.relationshipProperties.stream"
+            procedure_name = self.proc_names.edges_multiple_property
             configuration = {
                 "relationship_properties": list(properties if properties is not None else []),
                 "relationship_types": list(relationship_types if relationship_types is not None else ["*"]),
             }
         else:
-            procedure_name = "gds.beta.graph.relationships.stream"
+            procedure_name = self.proc_names.edges_topology
             configuration = {
                 "relationship_types": list(relationship_types if relationship_types is not None else ["*"]),
             }
@@ -520,10 +543,11 @@ class Neo4jArrowClient:
             {
                 "graph_name": self.graph,
                 "database_name": self.database,
-                "procedure_name": "gds.graph.nodeProperties.stream",
+                "procedure_name": self.proc_names.nodes_multiple_property,
                 "configuration": {
                     "node_labels": list(labels if labels is not None else ["*"]),
                     "node_properties": list(properties if properties is not None else []),
+                    "list_node_labels": True,
                 },
                 "concurrency": concurrency,
             }

@@ -1,4 +1,6 @@
-from neo4j_arrow.model import Graph, Node, Edge
+import pytest
+
+from neo4j_arrow.model import Graph, Node, Edge, ValidationError
 
 
 def test_json_serde():
@@ -123,3 +125,62 @@ def test_retrieving_by_pattern():
     assert g.node_for_src("beta.csv") is not None
     assert g.node_for_src("alpha") is None
     assert g.edge_for_src("r_0001.csv") is not None
+
+
+def test_node_validate():
+    with pytest.raises(ValidationError, match="^source must be provided in"):
+        Node(source="", key_field="id").validate()
+
+    with pytest.raises(ValidationError, match="^key_field must be provided in"):
+        Node(source="my_table", key_field="").validate()
+
+    with pytest.raises(ValidationError, match="^either label or label_field must be provided in"):
+        Node(source="my_table", key_field="id").validate()
+
+    with pytest.raises(ValidationError, match="^use of label and label_field at the same time is not allowed in"):
+        Node(source="my_table", key_field="id", label="label", label_field="label_field").validate()
+
+    Node(source="my_table", key_field="id", label="my_label").validate()
+    Node(source="my_table", key_field="id", label_field="my_label_field").validate()
+
+
+def test_edge_validate():
+    with pytest.raises(ValidationError, match="^source must be provided in"):
+        Edge(source="", source_field="", target_field="").validate()
+
+    with pytest.raises(ValidationError, match="^source_field must be provided in"):
+        Edge(source="source", source_field="", target_field="").validate()
+
+    with pytest.raises(ValidationError, match="^target_field must be provided in"):
+        Edge(source="source", source_field="source", target_field="").validate()
+
+    with pytest.raises(ValidationError, match="^either type or type_field must be provided in"):
+        Edge(source="source", source_field="source", target_field="target").validate()
+
+    with pytest.raises(ValidationError, match="^use of type and type_field at the same time is not allowed in"):
+        Edge(
+            source="source", source_field="source", target_field="target", edge_type="type", type_field="type_field"
+        ).validate()
+
+    with pytest.raises(ValidationError, match="^use of type and type_field at the same time is not allowed in"):
+        Edge(
+            source="source", source_field="source", target_field="target", type="type", type_field="type_field"
+        ).validate()
+
+    Edge(source="source", source_field="source_id", target_field="target_id", type="rel_type").validate()
+    Edge(source="source", source_field="source_id", target_field="target_id", edge_type="rel_type").validate()
+    Edge(source="source", source_field="source_id", target_field="target_id", type_field="type_field").validate()
+
+
+def test_model_validate():
+    with pytest.raises(ValidationError, match="either label or label_field must be provided in"):
+        Graph(name="graph", db="db").with_node(Node(source="node", key_field="id")).validate()
+
+    with pytest.raises(ValidationError, match="either type or type_field must be provided in"):
+        Graph(name="graph", db="db").with_edge(
+            Edge(source="edge", source_field="source_id", target_field="target_id")
+        ).validate()
+
+    Graph(name="graph", db="db").with_node(Node(source="node", key_field="id", label_field="label")).with_edge(
+        Edge(source="edge", source_field="source_id", target_field="target_id", type_field="type")
+    ).validate()

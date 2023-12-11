@@ -32,4 +32,6 @@ jobs:
       - name: install dependencies and build
         run: poetry install
       - name: run tests
-        run: poetry run tox -p
+        run: poetry run tox -m unit
+      - name: run integration tests
+        run: poetry run tox -m integration
