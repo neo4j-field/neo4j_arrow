@@ -34,4 +34,9 @@ jobs:
       - name: run tests
         run: poetry run tox -m unit
       - name: run integration tests
-        run: poetry run tox -m integration
+        env:
+          gds_license: ${{ secrets.GDS_LICENSE }}
+        run: |
+          mkdir -p /tmp/license
+          echo "${gds_license}" > /tmp/license/gds.license
+          poetry run tox -m integration
