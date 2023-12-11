@@ -21,7 +21,7 @@ def gds_version(driver: neo4j.Driver) -> str:
 def neo4j():
     container = (
         testcontainers.neo4j.Neo4jContainer(os.getenv("NEO4J_IMAGE", "neo4j:5-enterprise"))
-        .with_volume_mapping("/tmp/licenses", "/licenses")
+        .with_volume_mapping(os.getenv("GDS_LICENSE_FILE", "/tmp/gds.license"), "/licenses/gds.license")
         .with_env("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
         .with_env("NEO4J_PLUGINS", '["graph-data-science"]')
         .with_env("NEO4J_gds_enterprise_license__file", "/licenses/gds.license")

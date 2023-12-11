@@ -37,6 +37,6 @@ jobs:
         env:
           gds_license: ${{ secrets.GDS_LICENSE }}
         run: |
-          mkdir -p /tmp/license
-          echo "${gds_license}" > /tmp/license/gds.license
-          poetry run tox -m integration
+          LICENSE_FILE=${{ runner.temp }}/license.tmp
+          echo "${gds_license}" > $LICENSE_FILE
+          GDS_LICENSE_FILE=$LICENSE_FILE poetry run tox -m integration
