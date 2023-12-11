@@ -9,6 +9,11 @@ import re
 from typing import Any, Dict, Generic, List, Optional, Union, TypeVar
 
 
+class ValidationError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+
 class _NodeEncoder(JSONEncoder):
     def default(self, n: "Node") -> object:
         return n.to_dict()
@@ -32,13 +37,14 @@ class Node:
         label: str = "",
         label_field: str = "",
         key_field: str,
-        **properties: Dict[str, Any],
+        properties: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
     ):
         self._source = source
         self._label = label
         self._label_field = label_field
         self._key_field = key_field
-        self._properties = properties
+        self._properties = dict(properties or {}, **kwargs)
         self._pattern: Optional[re.Pattern[str]] = None
         try:
             self._pattern = re.compile(self._source)
@@ -81,12 +87,14 @@ class Node:
         }
 
     def validate(self) -> None:
-        if not self._label and not self._label_field:
-            raise Exception(f"either label or label_field must be provided in {self}")
-        if self._label and self._label_field:
-            raise Exception(f"use of label and label_field at the same time is not allowed " f"in {self}")
+        if not self._source:
+            raise ValidationError(f"source must be provided in {self}")
         if not self._key_field:
-            raise Exception(f"empty key_field in {self}")
+            raise ValidationError(f"key_field must be provided in {self}")
+        if not self._label and not self._label_field:
+            raise ValidationError(f"either label or label_field must be provided in {self}")
+        if self._label and self._label_field:
+            raise ValidationError(f"use of label and label_field at the same time is not allowed " f"in {self}")
 
     def __str__(self) -> str:
         return str(self.to_dict())
@@ -99,20 +107,26 @@ class Edge:
         source: str,
         edge_type: str = "",
         type_field: str = "",
+        type: str = "",
         source_field: str,
         target_field: str,
-        **properties: Dict[str, Any],
+        properties: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
     ):
         self._source = source
         self._type = edge_type
+        if not self._type and type:
+            self._type = type
         self._type_field = type_field
         self._source_field = source_field
         self._target_field = target_field
-        self._properties = properties
+        self._properties = dict(properties or {}, **kwargs)
         self._pattern: Optional[re.Pattern[str]] = None
         try:
             self._pattern = re.compile(source)
-        except Exception:
+        except ValueError:
+            pass
+        except TypeError:
             pass
 
     @property
@@ -156,14 +170,16 @@ class Edge:
         }
 
     def validate(self) -> None:
-        if not self._type_field and not self._type:
-            raise Exception(f"either type or type_field must be provided in {self}")
-        if self._type_field and self._type:
-            raise Exception(f"use of type and type_field at the same time is not allowed in {self}")
+        if not self._source:
+            raise ValidationError(f"source must be provided in {self}")
         if not self._source_field:
-            raise Exception(f"empty source_field in {self}")
+            raise ValidationError(f"source_field must be provided in {self}")
         if not self._target_field:
-            raise Exception(f"empty target_field in {self}")
+            raise ValidationError(f"target_field must be provided in {self}")
+        if not self._type_field and not self._type:
+            raise ValidationError(f"either type or type_field must be provided in {self}")
+        if self._type_field and self._type:
+            raise ValidationError(f"use of type and type_field at the same time is not allowed in {self}")
 
     def __str__(self) -> str:
         return str(self.to_dict())
