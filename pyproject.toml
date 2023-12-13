@@ -26,6 +26,8 @@ flake8-isort = "^6.1.1"
 flake8-spellcheck = "^0.28.0"
 flake8-comprehensions = "^3.14.0"
 flake8-bandit = "^4.1.1"
+testcontainers = "^3.7.1"
+neo4j = "^5.15.0"
 
 [build-system]
 requires = ["poetry-core"]

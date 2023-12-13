@@ -32,4 +32,11 @@ jobs:
       - name: install dependencies and build
         run: poetry install
       - name: run tests
-        run: poetry run tox -p
+        run: poetry run tox -m unit
+      - name: run integration tests
+        env:
+          gds_license: ${{ secrets.GDS_LICENSE }}
+        run: |
+          LICENSE_FILE=${{ runner.temp }}/license.tmp
+          echo "${gds_license}" > $LICENSE_FILE
+          GDS_LICENSE_FILE=$LICENSE_FILE poetry run tox -m integration
