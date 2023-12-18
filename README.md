@@ -32,7 +32,7 @@ from a release tarball or zip.
 Assuming you're in an active virtual environment named "venv":
 
 ```
-(venv) $ pip install neo4j_arrow@https://github.com/neo4j-field/neo4j_arrow/archive/refs/tags/0.6.0.tar.gz
+(venv) $ pip install neo4j_arrow@https://github.com/neo4j-field/neo4j_arrow/archive/refs/tags/0.6.1.tar.gz
 ```
 
 > Note: this module is _not_ distributed via PyPI or Anaconda.
