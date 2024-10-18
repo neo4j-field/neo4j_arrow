@@ -291,13 +291,14 @@ class Neo4jArrowClient:
         upload_descriptor = flight.FlightDescriptor.for_command(json.dumps(desc).encode("utf-8"))
         n_rows, n_bytes = 0, 0
         try:
-            writer, _ = client.do_put(upload_descriptor, schema, self.call_opts)
+            writer, metadata_reader = client.do_put(upload_descriptor, schema, self.call_opts)
             with writer:
                 for batch in batches:
                     mapped_batch = fn(batch)
                     self._write_batch_with_retries(mapped_batch, writer)
                     n_rows += batch.num_rows
                     n_bytes += batch.get_total_buffer_size()
+            metadata_reader.read()
         except Exception as e:
             raise error.interpret(e)
         return n_rows, n_bytes
