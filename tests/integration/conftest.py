@@ -19,6 +19,9 @@ def gds_version(driver: neo4j.Driver) -> str:
 
 @pytest.fixture(scope="module")
 def neo4j():
+    testcontainers.neo4j.Neo4jContainer.NEO4J_USER = "neo4j"
+    testcontainers.neo4j.Neo4jContainer.NEO4J_ADMIN_PASSWORD = "password"
+
     container = (
         testcontainers.neo4j.Neo4jContainer(os.getenv("NEO4J_IMAGE", "neo4j:5-enterprise"))
         .with_volume_mapping(os.getenv("GDS_LICENSE_FILE", "/tmp/gds.license"), "/licenses/gds.license")
@@ -31,6 +34,8 @@ def neo4j():
         .with_env("NEO4J_gds_arrow_listen__address", "0.0.0.0")
         .with_exposed_ports(7687, 7474, 8491)
     )
+    container.NEO4J_USER = "neo4j"
+    container.NEO4J_ADMIN_PASSWORD = "password"
     container.start()
 
     yield container
