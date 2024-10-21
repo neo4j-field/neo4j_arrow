@@ -2,7 +2,6 @@ import os
 from typing import Callable
 
 import neo4j
-import pandas
 import pytest
 import testcontainers.neo4j
 
@@ -60,8 +59,6 @@ def driver(neo4j):
 @pytest.fixture(scope="module")
 def arrow_client_factory(neo4j, driver) -> Callable[[str], Neo4jArrowClient]:
     def _arrow_client_factory(graph_name: str) -> Neo4jArrowClient:
-        print("neo4j inner username: " + neo4j.NEO4J_USER + "\n")
-        print("neo4j inner password: " + neo4j.NEO4J_ADMIN_PASSWORD + "\n")
         return Neo4jArrowClient(
             neo4j.get_container_host_ip(),
             graph=graph_name,
@@ -71,9 +68,6 @@ def arrow_client_factory(neo4j, driver) -> Callable[[str], Neo4jArrowClient]:
             tls=False,
             proc_names=neo4j_arrow._client.procedure_names(gds_version(driver)),
         )
-
-    print("neo4j outer username: " + neo4j.NEO4J_USER + "\n")
-    print("neo4j outer password: " + neo4j.NEO4J_ADMIN_PASSWORD + "\n")
 
     return _arrow_client_factory
 
