@@ -29,6 +29,7 @@ flake8-comprehensions = "^3.14.0"
 flake8-bandit = "^4.1.1"
 testcontainers = "^3.7.1"
 neo4j = "^5.15.0"
+pandas = "^2.2.3"
 
 [build-system]
 requires = ["poetry-core"]
