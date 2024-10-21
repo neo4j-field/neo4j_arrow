@@ -43,7 +43,7 @@ need the `neo4j_arrow` directory.
 
 # Build
 
-This project uses [poetry]() as the build tool.
+This project uses [poetry](https://python-poetry.org/) as the build tool.
 Install `poetry`, define your environment with `poetry env use` and invoke `poetry install` to install dependencies.
 
 To build;
