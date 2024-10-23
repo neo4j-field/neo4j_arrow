@@ -296,9 +296,9 @@ class Neo4jArrowClient:
                 for batch in batches:
                     mapped_batch = fn(batch)
                     self._write_batch_with_retries(mapped_batch, writer)
+                    metadata_reader.read() # read the ack message
                     n_rows += batch.num_rows
                     n_bytes += batch.get_total_buffer_size()
-            metadata_reader.read()
         except Exception as e:
             raise error.interpret(e)
         return n_rows, n_bytes
