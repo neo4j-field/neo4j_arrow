@@ -25,7 +25,7 @@ jobs:
       - name: install poetry
         run: |
           python3 -m venv $POETRY_HOME
-          $POETRY_HOME/bin/pip install poetry==1.7.1
+          $POETRY_HOME/bin/pip install poetry==1.8.4
           $POETRY_HOME/bin/poetry --version
       - name: add poetry to path
         run: echo "${POETRY_HOME}/bin" >> $GITHUB_PATH

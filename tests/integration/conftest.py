@@ -11,6 +11,10 @@ from neo4j_arrow import Neo4jArrowClient
 
 def gds_version(driver: neo4j.Driver) -> str:
     with driver.session() as session:
+        data = session.run("CALL gds.debug.sysInfo()").to_df()
+        print(data)
+
+    with driver.session() as session:
         version = session.run(
             "CALL gds.debug.sysInfo() YIELD key, value WITH * WHERE key = $key RETURN value", {"key": "gdsVersion"}
         ).single(strict=True)[0]
@@ -19,6 +23,9 @@ def gds_version(driver: neo4j.Driver) -> str:
 
 @pytest.fixture(scope="module")
 def neo4j():
+    testcontainers.neo4j.Neo4jContainer.NEO4J_USER = "neo4j"
+    testcontainers.neo4j.Neo4jContainer.NEO4J_ADMIN_PASSWORD = "password"
+
     container = (
         testcontainers.neo4j.Neo4jContainer(os.getenv("NEO4J_IMAGE", "neo4j:5-enterprise"))
         .with_volume_mapping(os.getenv("GDS_LICENSE_FILE", "/tmp/gds.license"), "/licenses/gds.license")
@@ -31,6 +38,8 @@ def neo4j():
         .with_env("NEO4J_gds_arrow_listen__address", "0.0.0.0")
         .with_exposed_ports(7687, 7474, 8491)
     )
+    container.NEO4J_USER = "neo4j"
+    container.NEO4J_ADMIN_PASSWORD = "password"
     container.start()
 
     yield container

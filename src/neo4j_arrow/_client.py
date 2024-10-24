@@ -1,5 +1,5 @@
 import logging
-from collections import abc
+import time
 from enum import Enum
 import json
 
@@ -10,7 +10,6 @@ from . import error
 from .model import Graph
 
 from typing import (
-    cast,
     Any,
     Callable,
     Dict,
@@ -276,40 +275,46 @@ class Neo4jArrowClient:
     def _write_batches(
         self,
         desc: Dict[str, Any],
-        batches: Union[pa.RecordBatch, Iterable[pa.RecordBatch]],
+        batches: List[pa.RecordBatch],
         mapping_fn: Optional[MappingFn] = None,
     ) -> Result:
         """
         Write PyArrow RecordBatches to the GDS Flight service.
         """
-        if isinstance(batches, abc.Iterable):
-            batches = iter(batches)
-        else:
-            batches = iter([batches])
+        if len(batches) == 0:
+            raise Exception("no record batches provided")
 
         fn = mapping_fn or self._nop
-
-        first = next(batches, None)
-        if not first:
-            raise Exception("empty iterable of record batches provided")
-        first = cast(pa.RecordBatch, fn(first))
+        schema = fn(batches[0]).schema
 
         client = self._client()
         upload_descriptor = flight.FlightDescriptor.for_command(json.dumps(desc).encode("utf-8"))
         n_rows, n_bytes = 0, 0
         try:
-            writer, _ = client.do_put(upload_descriptor, first.schema, self.call_opts)
+            writer, metadata_reader = client.do_put(upload_descriptor, schema, self.call_opts)
             with writer:
-                writer.write_batch(first)
-                n_rows += first.num_rows
-                n_bytes += first.get_total_buffer_size()
-                for remaining in batches:
-                    writer.write_batch(fn(remaining))
-                    n_rows += remaining.num_rows
-                    n_bytes += remaining.get_total_buffer_size()
+                for batch in batches:
+                    mapped_batch = fn(batch)
+                    self._write_batch_with_retries(mapped_batch, writer)
+                    metadata_reader.read() # read the ack message
+                    n_rows += batch.num_rows
+                    n_bytes += batch.get_total_buffer_size()
         except Exception as e:
             raise error.interpret(e)
         return n_rows, n_bytes
+
+    def _write_batch_with_retries(self, mapped_batch, writer):
+        num_retries = 10
+        while True:
+            try:
+                writer.write_batch(mapped_batch)
+                break
+            except flight.FlightUnavailableError | flight.FlightTimedOutError | flight.FlightInternalError as e:
+                self.logger.exception(f"Encountered transient error; retrying {num_retries} more times ...")
+                time.sleep(0.1 / num_retries)
+                num_retries -= 1
+                if num_retries == 0:
+                    raise e
 
     def start(
         self,
