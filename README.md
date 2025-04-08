@@ -1,4 +1,12 @@
-# neo4j_arrow
+# neo4j_arrow (DEPRECATED)
+
+----
+
+> ⚠️ **Warning** ⚠️
+> # This repository is no longer maintained.
+> Please use the following instead: [**graph-data-science-client**](https://github.com/neo4j/graph-data-science-client).
+
+-----
 
 PyArrow client for working with GDS Apache Arrow Flight Service
 
